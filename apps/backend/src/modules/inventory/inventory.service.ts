@@ -34,16 +34,15 @@ export class InventoryService {
   }
 
   async getLowStockItems(tenantId: string, branchId: string) {
-    return this.prisma.inventory.findMany({
-      where: {
-        tenantId,
-        branchId,
-        quantity: { lte: this.prisma.inventory.fields.reorderLevel },
-      },
-      include: {
-        product: { select: { id: true, name: true, sku: true } },
-      },
-    });
+    return this.prisma.$queryRaw<any[]>`
+      SELECT i.*, p.name as "productName", p.sku as "productSku"
+      FROM "Inventory" i
+      JOIN "Product" p ON p.id = i."productId"
+      WHERE i."tenantId" = ${tenantId}
+        AND i."branchId" = ${branchId}
+        AND i."reorderLevel" > 0
+        AND i.quantity <= i."reorderLevel"
+    `;
   }
 
   async adjustStock(tenantId: string, branchId: string, userId: string, dto: AdjustStockDto) {

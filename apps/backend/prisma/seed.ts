@@ -61,7 +61,8 @@ async function main() {
     },
   });
 
-  console.log(`✅ Super Admin created: ${superAdminEmail} / ${superAdminPassword}`);
+  console.log(`✅ Super Admin created: ${superAdminEmail}`);
+  console.log('   (Password stored in SUPER_ADMIN_PASSWORD env var)');
 
   // Create Demo Tenant
   const demoTenant = await prisma.tenant.create({
@@ -351,11 +352,11 @@ async function main() {
   }
 
   console.log('✅ Demo data created successfully');
-  console.log('\n📋 Login Credentials:');
-  console.log(`   Super Admin: ${superAdminEmail} / ${superAdminPassword}`);
-  console.log(`   Restaurant Owner: owner@demo-restaurant.com / Owner@123456`);
-  console.log(`   Manager: manager@demo-restaurant.com / Manager@123456`);
-  console.log(`   Cashier: cashier@demo-restaurant.com / Cashier@123456`);
+  console.log('\n📋 Login Emails (check .env.example for default passwords):');
+  console.log(`   Super Admin: ${superAdminEmail}`);
+  console.log('   Restaurant Owner: owner@demo-restaurant.com');
+  console.log('   Manager: manager@demo-restaurant.com');
+  console.log('   Cashier: cashier@demo-restaurant.com');
   console.log('\n🎉 Seed completed!');
 }
 

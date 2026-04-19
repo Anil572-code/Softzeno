@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min, ValidateNested,
+  IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderType, TableStatus } from '@prisma/client';
@@ -55,8 +55,6 @@ export class UpdateTableDto {
   @IsBoolean()
   isActive?: boolean;
 }
-
-import { IsBoolean } from 'class-validator';
 
 export class RestaurantOrderItemDto {
   @ApiProperty()
