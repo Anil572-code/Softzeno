@@ -2,8 +2,10 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, ShoppingBag } from 'lucide-react'
+import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
+import { APP_LOGO_URL } from '@/lib/constants'
 import { loginSchema, type LoginFormData } from '@/validations/auth.schema'
 import { useLogin } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
@@ -22,8 +24,15 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-xl">
-              <ShoppingBag className="h-8 w-8 text-white" />
+            <div className="h-16 w-16 rounded-2xl bg-black/5 flex items-center justify-center">
+              <Image
+                src={APP_LOGO_URL}
+                alt="Softzeno logo"
+                width={56}
+                height={56}
+                className="h-14 w-14 object-contain"
+                priority
+              />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>

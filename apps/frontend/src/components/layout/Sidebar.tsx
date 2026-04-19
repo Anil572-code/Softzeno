@@ -1,8 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { APP_LOGO_URL } from '@/lib/constants'
 import {
   LayoutDashboard, ShoppingCart, Package, Users, BarChart3,
   Settings, ChefHat, Table2, ClipboardList, Boxes, Truck,
@@ -98,9 +100,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-slate-700">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center font-bold text-sm">
-              S
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 overflow-hidden rounded-lg bg-black/20">
+              <Image
+                src={APP_LOGO_URL}
+                alt="Softzeno logo"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+                priority
+              />
             </div>
             <span className="font-bold text-lg">Softzeno POS</span>
           </div>

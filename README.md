@@ -47,6 +47,15 @@ Frontend runs on `http://localhost:3000` and the API on `http://localhost:3001/a
 ## Documentation
 - API Reference: `docs/API.md`
 
+## GitHub Pages Deployment (Frontend)
+This repo includes a GitHub Actions workflow to publish the `apps/frontend` build to GitHub Pages.
+
+1. Ensure your default branch is `main` (or update `.github/workflows/deploy-pages.yml` to match).
+2. In GitHub repo settings, enable **Pages** and set the source to **GitHub Actions**.
+3. Push to `main` or run the workflow manually from the **Actions** tab.
+
+The site will be published at `https://<owner>.github.io/<repo>/`.
+
 ## Project Structure
 ```
 apps/

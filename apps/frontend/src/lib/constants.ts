@@ -1,5 +1,8 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Softzeno POS'
+export const APP_LOGO_URL =
+  process.env.NEXT_PUBLIC_APP_LOGO_URL ||
+  'https://github.com/user-attachments/assets/06616e4b-d8ac-4927-92bb-aa5f560dc0bb'
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'
 
 export const BUSINESS_TYPES = [
