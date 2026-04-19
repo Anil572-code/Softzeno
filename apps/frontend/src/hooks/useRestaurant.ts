@@ -14,7 +14,7 @@ export function useTables() {
 export function useUpdateTableStatus() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => restaurantService.updateTableStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: string }) => restaurantService.updateTable(id, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tables'] }),
     onError: () => toast.error('Failed to update table'),
   })
@@ -22,8 +22,8 @@ export function useUpdateTableStatus() {
 
 export function useKitchenOrders() {
   return useQuery({
-    queryKey: ['kitchen-orders'],
-    queryFn: () => restaurantService.getKitchenOrders(),
+    queryKey: ['kitchen-tickets'],
+    queryFn: () => restaurantService.getKitchenTickets(),
     refetchInterval: 30000,
   })
 }
@@ -31,8 +31,8 @@ export function useKitchenOrders() {
 export function useUpdateKitchenOrderStatus() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => restaurantService.updateOrderStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kitchen-orders'] }),
+    mutationFn: ({ id, status }: { id: string; status: string }) => restaurantService.updateKitchenTicketStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kitchen-tickets'] }),
     onError: () => toast.error('Failed to update order status'),
   })
 }

@@ -1,4 +1,13 @@
-import { PrismaClient, BusinessType, UserRole } from '@prisma/client';
+import {
+  PrismaClient,
+  BusinessType,
+  UserRole,
+  ExpenseCategory,
+  PurchaseOrderStatus,
+  OrderStatus,
+  OrderType,
+  KitchenTicketStatus,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -90,7 +99,7 @@ async function main() {
 
   // Demo Owner
   const ownerHash = await bcrypt.hash('Owner@123456', 12);
-  await prisma.user.create({
+  const ownerUser = await prisma.user.create({
     data: {
       tenantId: demoTenant.id,
       branchId: demoBranch.id,
@@ -104,7 +113,7 @@ async function main() {
 
   // Demo Manager
   const managerHash = await bcrypt.hash('Manager@123456', 12);
-  await prisma.user.create({
+  const managerUser = await prisma.user.create({
     data: {
       tenantId: demoTenant.id,
       branchId: demoBranch.id,
@@ -118,7 +127,7 @@ async function main() {
 
   // Demo Cashier
   const cashierHash = await bcrypt.hash('Cashier@123456', 12);
-  await prisma.user.create({
+  const cashierUser = await prisma.user.create({
     data: {
       tenantId: demoTenant.id,
       branchId: demoBranch.id,
@@ -128,6 +137,42 @@ async function main() {
       role: UserRole.CASHIER,
       isActive: true,
     },
+  });
+
+  // Demo Employees
+  await prisma.employee.createMany({
+    data: [
+      {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        userId: ownerUser.id,
+        employeeCode: 'EMP-001',
+        position: 'Owner',
+        department: 'Management',
+        salary: 5000,
+        hireDate: new Date(),
+      },
+      {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        userId: managerUser.id,
+        employeeCode: 'EMP-002',
+        position: 'Manager',
+        department: 'Operations',
+        salary: 3200,
+        hireDate: new Date(),
+      },
+      {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        userId: cashierUser.id,
+        employeeCode: 'EMP-003',
+        position: 'Cashier',
+        department: 'Front of House',
+        salary: 2200,
+        hireDate: new Date(),
+      },
+    ],
   });
 
   console.log(`✅ Demo tenant created: demo-restaurant`);
@@ -261,10 +306,73 @@ async function main() {
     ],
   });
 
+  // Suppliers
+  const supplierA = await prisma.supplier.create({
+    data: {
+      tenantId: demoTenant.id,
+      name: 'Fresh Foods Co.',
+      email: 'orders@freshfoods.com',
+      phone: '+1-555-0200',
+      address: '456 Market Lane, Demo City',
+      taxNumber: 'FF-12345',
+      notes: 'Delivers twice a week',
+    },
+  });
+
+  const supplierB = await prisma.supplier.create({
+    data: {
+      tenantId: demoTenant.id,
+      name: 'Beverage Partners',
+      email: 'sales@beveragepartners.com',
+      phone: '+1-555-0205',
+      address: '22 Beverage Blvd, Demo City',
+      taxNumber: 'BP-67890',
+    },
+  });
+
+  // Purchase Order
+  const purchaseOrder = await prisma.purchaseOrder.create({
+    data: {
+      tenantId: demoTenant.id,
+      branchId: demoBranch.id,
+      supplierId: supplierA.id,
+      orderNumber: 'PO-1001',
+      status: PurchaseOrderStatus.ORDERED,
+      subtotal: 140,
+      taxAmount: 12,
+      discountAmount: 0,
+      totalAmount: 152,
+      paidAmount: 0,
+      notes: 'Weekly restock',
+      orderedAt: new Date(),
+      userId: managerUser.id,
+      items: {
+        create: [
+          {
+            productId: burger.id,
+            quantity: 20,
+            unitCost: 4.5,
+            taxAmount: 4,
+            totalCost: 94,
+          },
+          {
+            productId: pizza.id,
+            quantity: 10,
+            unitCost: 5,
+            taxAmount: 2,
+            totalCost: 58,
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  });
+
   // Tables
   const tableNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'B1', 'B2'];
+  let demoTableId: string | null = null;
   for (const tableName of tableNames) {
-    await prisma.table.create({
+    const table = await prisma.table.create({
       data: {
         tenantId: demoTenant.id,
         branchId: demoBranch.id,
@@ -273,6 +381,74 @@ async function main() {
         section: tableName.startsWith('B') ? 'Bar' : 'Main Hall',
         status: 'AVAILABLE',
       },
+    });
+    if (!demoTableId && tableName === 'T1') {
+      demoTableId = table.id;
+    }
+  }
+
+  // Demo Restaurant Order & Kitchen Ticket
+  if (demoTableId) {
+    const orderItems = [
+      {
+        productId: burger.id,
+        name: burger.name,
+        quantity: 2,
+        unitPrice: Number(burger.sellingPrice),
+        modifiers: ['No onions'],
+        notes: 'Extra cheese',
+        status: OrderStatus.PENDING,
+      },
+      {
+        productId: coffee.id,
+        name: coffee.name,
+        quantity: 1,
+        unitPrice: Number(coffee.sellingPrice),
+        modifiers: [],
+        notes: 'Less sugar',
+        status: OrderStatus.PENDING,
+      },
+    ];
+    const subtotal = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const taxAmount = subtotal * 0.1;
+    const serviceCharge = subtotal * 0.05;
+    const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+
+    const restaurantOrder = await prisma.restaurantOrder.create({
+      data: {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        tableId: demoTableId,
+        userId: cashierUser.id,
+        orderNumber: 'KOT-1001',
+        type: OrderType.DINE_IN,
+        status: OrderStatus.PLACED,
+        partySize: 2,
+        notes: 'Dinner service',
+        totalItems,
+        subtotal,
+        taxAmount,
+        serviceCharge,
+        totalAmount: subtotal + taxAmount + serviceCharge,
+        placedAt: new Date(),
+        items: { create: orderItems },
+      },
+    });
+
+    await prisma.kitchenTicket.create({
+      data: {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        restaurantOrderId: restaurantOrder.id,
+        ticketNumber: 'KT-1001',
+        items: orderItems as any,
+        status: KitchenTicketStatus.PENDING,
+      },
+    });
+
+    await prisma.table.update({
+      where: { id: demoTableId },
+      data: { status: 'OCCUPIED' },
     });
   }
 
@@ -350,6 +526,54 @@ async function main() {
       data: { tenantId: demoTenant.id, ...setting },
     });
   }
+
+  // Expenses
+  await prisma.expense.createMany({
+    data: [
+      {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        userId: ownerUser.id,
+        category: ExpenseCategory.RENT,
+        title: 'Monthly Rent',
+        amount: 1200,
+        description: 'Main branch rent',
+        expenseDate: new Date(),
+      },
+      {
+        tenantId: demoTenant.id,
+        branchId: demoBranch.id,
+        userId: managerUser.id,
+        category: ExpenseCategory.SUPPLIES,
+        title: 'Cleaning Supplies',
+        amount: 180,
+        description: 'Weekly cleaning restock',
+        expenseDate: new Date(),
+      },
+    ],
+  });
+
+  // Audit Logs
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        tenantId: demoTenant.id,
+        userId: ownerUser.id,
+        action: 'CREATE',
+        resource: 'PurchaseOrder',
+        resourceId: purchaseOrder.id,
+        newValues: { orderNumber: purchaseOrder.orderNumber, totalAmount: purchaseOrder.totalAmount },
+      },
+      {
+        tenantId: demoTenant.id,
+        userId: managerUser.id,
+        action: 'UPDATE',
+        resource: 'Settings',
+        resourceId: 'currency',
+        newValues: { value: 'USD' },
+      },
+    ],
+  });
 
   console.log('✅ Demo data created successfully');
   console.log('\n📋 Login Emails (check .env.example for default passwords):');
