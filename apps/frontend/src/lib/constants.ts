@@ -37,7 +37,8 @@ export const KITCHEN_STATUSES = {
   PENDING: { label: 'Pending', color: 'bg-yellow-100 border-yellow-400' },
   PREPARING: { label: 'Preparing', color: 'bg-blue-100 border-blue-400' },
   READY: { label: 'Ready', color: 'bg-green-100 border-green-400' },
-  SERVED: { label: 'Served', color: 'bg-gray-100 border-gray-400' },
+  DELIVERED: { label: 'Delivered', color: 'bg-gray-100 border-gray-400' },
+  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 border-red-400' },
 } as const
 
 export const ROUTES = {

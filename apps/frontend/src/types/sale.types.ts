@@ -3,7 +3,7 @@ export interface SaleItem {
   productId: string
   variantId?: string
   name: string
-  sku: string
+  sku?: string | null
   unitPrice: number
   quantity: number
   discountAmount: number
@@ -16,21 +16,23 @@ export interface Sale {
   id: string
   saleNumber: string
   customerId?: string
-  customer?: { id: string; name: string; email: string }
-  employeeId: string
-  employee?: { id: string; name: string }
+  customer?: { id: string; name: string; phone?: string | null }
+  user?: { id: string; name: string }
   branchId: string
   items: SaleItem[]
   subtotal: number
   discountAmount: number
   taxAmount: number
-  total: number
-  paymentMethod: string
-  paymentStatus: 'PAID' | 'PARTIAL' | 'UNPAID'
-  status: 'COMPLETED' | 'REFUNDED' | 'VOID'
+  totalAmount: number
+  paidAmount: number
+  status: 'PENDING' | 'BILLED' | 'PAID' | 'CANCELLED' | 'REFUNDED'
   notes?: string
-  receiptNumber: string
   createdAt: string
+}
+
+export interface Payment {
+  method: 'CASH' | 'CARD' | 'QR' | 'WALLET' | 'SPLIT' | 'CREDIT'
+  amount: number
 }
 
 export interface SaleStats {

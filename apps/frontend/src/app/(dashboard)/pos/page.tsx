@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { productService } from '@/services/product.service'
 import { saleService } from '@/services/sale.service'
-import { useCartStore } from '@/store/cart.store'
+import { useCartStore, useCartTotals } from '@/store/cart.store'
 import { formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -28,11 +27,12 @@ export default function POSPage() {
 
   const {
     items, addItem, removeItem, updateQuantity, clearCart, holdOrder,
-    customerId, customerName, setCustomer,
-    discount, discountType, setDiscount,
-    notes, setNotes,
-    subtotal, taxTotal, discountTotal, total,
+    customerId,
+    discount, discountType,
+    notes,
+    orderType, tableId,
   } = useCartStore()
+  const { subtotal, taxTotal, discountTotal, total } = useCartTotals()
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -50,6 +50,7 @@ export default function POSPage() {
 
   const products = productsData?.data ?? []
   const change = Math.max(0, parseFloat(amountTendered || '0') - total)
+  const orderDiscount = discountType === 'percent' ? subtotal * (discount / 100) : discount
 
   async function handleCompleteSale() {
     if (items.length === 0) {
@@ -65,12 +66,13 @@ export default function POSPage() {
           quantity: i.quantity,
           unitPrice: i.unitPrice,
           discountAmount: i.discountAmount,
-          taxAmount: i.taxAmount,
           notes: i.notes,
+          modifiers: i.modifiers,
         })),
         customerId: customerId ?? undefined,
-        discount,
-        discountType,
+        orderType,
+        tableId: tableId ?? undefined,
+        discountAmount: orderDiscount,
         notes,
         payments: [{ method: paymentMethod, amount: total }],
       })

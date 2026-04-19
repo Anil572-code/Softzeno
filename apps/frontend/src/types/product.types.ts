@@ -1,53 +1,55 @@
 export interface Category {
   id: string
   name: string
-  description?: string
-  image?: string
-  parentId?: string
-  isActive: boolean
-  productCount?: number
+  slug?: string
+  parentId?: string | null
+  isActive?: boolean
 }
 
 export interface ProductVariant {
   id: string
   name: string
-  sku: string
-  price: number
-  cost: number
-  stock: number
-  barcode?: string
-  attributes: Record<string, string>
+  sku?: string | null
+  sellingPrice: number
+}
+
+export interface ProductInventorySummary {
+  quantity: number
+  reservedQty: number
+  reorderLevel: number
 }
 
 export interface Product {
   id: string
   name: string
-  description?: string
-  sku: string
-  barcode?: string
-  image?: string
-  categoryId: string
-  category?: Category
-  price: number
-  cost: number
-  taxRate: number
-  stock: number
-  minStock: number
-  unit: string
+  slug: string
+  description?: string | null
+  image?: string | null
+  barcode?: string | null
+  sku?: string | null
+  costPrice: number
+  sellingPrice: number
+  trackStock: boolean
   isActive: boolean
-  isFeatured: boolean
+  isRestaurantItem: boolean
+  categoryId?: string | null
+  category?: Category | null
+  brand?: { id: string; name: string } | null
+  unit?: { id: string; name: string; abbreviation?: string | null } | null
+  taxClass?: { id: string; name: string; rate: number } | null
   variants?: ProductVariant[]
-  createdAt: string
-  updatedAt: string
+  inventory?: ProductInventorySummary[]
+  stockQty?: number
 }
 
 export interface StockMovement {
   id: string
   productId: string
-  product?: Product
-  type: 'IN' | 'OUT' | 'ADJUSTMENT'
+  variantId?: string | null
+  type: 'PURCHASE' | 'SALE' | 'ADJUSTMENT' | 'TRANSFER' | 'RETURN' | 'WASTAGE'
   quantity: number
-  reason: string
-  reference?: string
+  reference?: string | null
+  notes?: string | null
   createdAt: string
+  user?: { id: string; name: string }
 }

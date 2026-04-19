@@ -2,7 +2,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { productService } from '@/services/product.service'
-import type { Product, Category } from '@/types/product.types'
+import { inventoryService } from '@/services/inventory.service'
+import type { Product } from '@/types/product.types'
 
 export function useProducts(params?: { page?: number; limit?: number; search?: string; categoryId?: string }) {
   return useQuery({
@@ -53,9 +54,10 @@ export function useDeleteProduct() {
   })
 }
 
-export function useLowStockProducts() {
+export function useLowStockProducts(branchId?: string) {
   return useQuery({
-    queryKey: ['low-stock'],
-    queryFn: () => productService.getLowStockProducts(),
+    queryKey: ['low-stock', branchId],
+    queryFn: () => (branchId ? inventoryService.getLowStock(branchId) : Promise.resolve([])),
+    enabled: !!branchId,
   })
 }

@@ -1,93 +1,123 @@
 'use client'
 
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/utils'
-import { useQuery } from '@tanstack/react-query'
 import { reportService } from '@/services/report.service'
+import { inventoryService } from '@/services/inventory.service'
+import { useAuthStore } from '@/store/auth.store'
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { TrendingUp, ShoppingCart, Users, DollarSign, Package, AlertTriangle } from 'lucide-react'
-
-const COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd']
+import { TrendingUp, ShoppingCart, DollarSign, Package, AlertTriangle } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
+  const branchId = useAuthStore((state) => state.user?.branchId)
+
+  const { startDate, endDate } = useMemo(() => {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(end.getDate() - 6)
+    return {
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0],
+    }
+  }, [])
+
+  const { data: dashboard, isLoading: loadingDashboard } = useQuery({
+    queryKey: ['dashboard'],
     queryFn: () => reportService.getDashboard(),
     refetchInterval: 60000,
+  })
+
+  const { data: salesReport, isLoading: loadingSales } = useQuery({
+    queryKey: ['sales-report', startDate, endDate],
+    queryFn: () => reportService.getSalesReport({ startDate, endDate, groupBy: 'day' }),
+  })
+
+  const { data: productReport, isLoading: loadingProducts } = useQuery({
+    queryKey: ['product-report', startDate, endDate],
+    queryFn: () => reportService.getProductReport({ startDate, endDate }),
+  })
+
+  const { data: lowStockItems } = useQuery({
+    queryKey: ['low-stock', branchId],
+    queryFn: () => (branchId ? inventoryService.getLowStock(branchId) : Promise.resolve([])),
+    enabled: !!branchId,
   })
 
   const statCards = [
     {
       title: "Today's Revenue",
-      value: formatCurrency(stats?.todayRevenue ?? 0),
+      value: formatCurrency(Number(dashboard?.today.revenue ?? 0)),
       icon: DollarSign,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50 dark:bg-indigo-900/20',
-      change: '+12.5%',
+      helper: 'Today',
     },
     {
       title: "Today's Orders",
-      value: stats?.todayOrders ?? 0,
+      value: dashboard?.today.sales ?? 0,
       icon: ShoppingCart,
       color: 'text-green-600',
       bg: 'bg-green-50 dark:bg-green-900/20',
-      change: '+8.2%',
+      helper: 'Today',
     },
     {
-      title: 'New Customers',
-      value: stats?.newCustomers ?? 0,
-      icon: Users,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50 dark:bg-blue-900/20',
-      change: '+4.1%',
-    },
-    {
-      title: 'Avg Order Value',
-      value: formatCurrency(stats?.avgOrderValue ?? 0),
+      title: 'Monthly Revenue',
+      value: formatCurrency(Number(dashboard?.thisMonth.revenue ?? 0)),
       icon: TrendingUp,
       color: 'text-purple-600',
       bg: 'bg-purple-50 dark:bg-purple-900/20',
-      change: '+2.3%',
+      helper: 'This month',
+    },
+    {
+      title: 'Low Stock Alerts',
+      value: dashboard?.lowStockAlerts ?? 0,
+      icon: AlertTriangle,
+      color: 'text-yellow-600',
+      bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+      helper: 'Below reorder level',
     },
   ]
 
-  const revenueData = stats?.revenueChart ?? Array.from({ length: 7 }, (_, i) => ({
-    date: `Day ${i + 1}`,
-    revenue: Math.floor(Math.random() * 5000) + 1000,
+  const revenueData = (salesReport ?? []).map((row) => ({
+    date: row.period,
+    revenue: Number(row.revenue),
   }))
 
-  const topProducts = stats?.topProducts ?? []
-  const recentSales = stats?.recentSales ?? []
-  const lowStockItems = stats?.lowStockItems ?? []
+  const topProducts = (productReport ?? [])
+    .slice()
+    .sort((a, b) => Number(b.revenue) - Number(a.revenue))
+    .slice(0, 5)
+
+  const recentSales = dashboard?.recentSales ?? []
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back! Here's what's happening today.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back! Here is the latest overview.</p>
       </div>
 
-      {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
             <Card key={card.title}>
               <CardContent className="p-6">
-                {isLoading ? (
+                {loadingDashboard ? (
                   <Skeleton className="h-16 w-full" />
                 ) : (
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{card.title}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{card.value}</p>
-                      <Badge variant="secondary" className="mt-2 text-green-600 bg-green-50">
-                        {card.change} from yesterday
+                      <Badge variant="secondary" className="mt-2 text-gray-600 bg-gray-100">
+                        {card.helper}
                       </Badge>
                     </div>
                     <div className={`p-3 rounded-lg ${card.bg}`}>
@@ -101,16 +131,19 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue chart */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Revenue Overview (Last 7 Days)</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loadingSales ? (
               <Skeleton className="h-64 w-full" />
+            ) : revenueData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+                <TrendingUp className="h-8 w-8 mb-2" />
+                <p className="text-sm">No revenue data yet</p>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={revenueData}>
@@ -124,26 +157,19 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#6366f1"
-                    strokeWidth={2}
-                    fill="url(#colorRevenue)"
-                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#colorRevenue)" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
 
-        {/* Top Products */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Top Products</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loadingProducts ? (
               <Skeleton className="h-64 w-full" />
             ) : topProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-gray-400">
@@ -152,19 +178,19 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {topProducts.slice(0, 5).map((p: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3">
+                {topProducts.map((p, i) => (
+                  <div key={p.product.id} className="flex items-center gap-3">
                     <span className="text-xs font-bold text-gray-400 w-4">#{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{p.name}</p>
+                      <p className="text-sm font-medium truncate">{p.product.name}</p>
                       <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
                         <div
                           className="bg-indigo-500 h-1.5 rounded-full"
-                          style={{ width: `${Math.min(100, (p.qty / (topProducts[0]?.qty || 1)) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (Number(p.revenue) / Number(topProducts[0]?.revenue || 1)) * 100)}%` }}
                         />
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">{p.qty} sold</span>
+                    <span className="text-xs text-gray-500">{Number(p.quantity)} sold</span>
                   </div>
                 ))}
               </div>
@@ -173,15 +199,13 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Sales */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Sales</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loadingDashboard ? (
               <Skeleton className="h-48 w-full" />
             ) : recentSales.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-gray-400">
@@ -190,14 +214,14 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {recentSales.map((sale: any) => (
+                {recentSales.map((sale) => (
                   <div key={sale.id} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
                       <p className="text-sm font-medium">{sale.saleNumber}</p>
-                      <p className="text-xs text-gray-500">{sale.customerName ?? 'Walk-in'}</p>
+                      <p className="text-xs text-gray-500">{sale.customer?.name ?? 'Walk-in'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">{formatCurrency(sale.totalAmount)}</p>
+                      <p className="text-sm font-bold">{formatCurrency(Number(sale.totalAmount))}</p>
                       <Badge variant="outline" className="text-xs">{sale.status}</Badge>
                     </div>
                   </div>
@@ -207,7 +231,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Low Stock */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -216,23 +239,23 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loadingDashboard ? (
               <Skeleton className="h-48 w-full" />
-            ) : lowStockItems.length === 0 ? (
+            ) : (lowStockItems?.length ?? 0) === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-gray-400">
                 <Package className="h-8 w-8 mb-2" />
                 <p className="text-sm">All stock levels normal</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {lowStockItems.map((item: any) => (
+                {(lowStockItems ?? []).map((item) => (
                   <div key={item.id} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
-                      <p className="text-sm font-medium">{item.productName}</p>
-                      <p className="text-xs text-gray-500">{item.branchName}</p>
+                      <p className="text-sm font-medium">{item.product.name}</p>
+                      <p className="text-xs text-gray-500">{item.product.sku ?? 'No SKU'}</p>
                     </div>
                     <Badge variant="destructive" className="text-xs">
-                      {item.quantity} left
+                      {Number(item.quantity)} left
                     </Badge>
                   </div>
                 ))}

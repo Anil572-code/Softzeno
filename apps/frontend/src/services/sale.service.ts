@@ -1,28 +1,39 @@
 import api from '@/lib/api'
-import type { Sale, SaleStats } from '@/types/sale.types'
-import type { CartItem } from '@/store/cart.store'
+import type { PaginatedResponse } from '@/types/common.types'
+import type { Sale } from '@/types/sale.types'
 
 interface CreateSaleData {
-  items: CartItem[]
   customerId?: string | null
-  discount: number
-  discountType: 'fixed' | 'percent'
-  couponCode?: string | null
-  paymentMethod: string
-  amountPaid: number
-  notes?: string
-  orderType: string
+  orderType?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY'
   tableId?: string | null
+  registerId?: string | null
+  shiftId?: string | null
+  items: {
+    productId: string
+    variantId?: string
+    quantity: number
+    unitPrice: number
+    discountAmount?: number
+    notes?: string
+    modifiers?: string[]
+  }[]
+  payments?: { method: 'CASH' | 'CARD' | 'QR' | 'WALLET' | 'SPLIT' | 'CREDIT'; amount: number; reference?: string }[]
+  discountAmount?: number
+  tipAmount?: number
+  couponCode?: string
+  notes?: string
+  hold?: boolean
+  redeemPoints?: number
 }
 
 export const saleService = {
   createSale: (data: CreateSaleData) => api.post<Sale>('/sales', data).then(r => r.data),
-  getSales: (params?: { page?: number; limit?: number; startDate?: string; endDate?: string }) =>
-    api.get<{ data: Sale[]; total: number }>('/sales', { params }).then(r => r.data),
+  getSales: (params?: { page?: number; limit?: number; search?: string }) =>
+    api.get<PaginatedResponse<Sale>>('/sales', { params }).then(r => r.data),
   getSale: (id: string) => api.get<Sale>(`/sales/${id}`).then(r => r.data),
-  voidSale: (id: string, reason: string) => api.post(`/sales/${id}/void`, { reason }).then(r => r.data),
-  refundSale: (id: string, items: string[]) => api.post(`/sales/${id}/refund`, { items }).then(r => r.data),
-  getStats: () => api.get<SaleStats>('/sales/stats/today').then(r => r.data),
-  getDailyRevenue: (days = 30) => api.get<{ date: string; revenue: number; orders: number }[]>('/reports/daily-revenue', { params: { days } }).then(r => r.data),
-  getTopProducts: (limit = 10) => api.get<{ name: string; quantity: number; revenue: number }[]>('/reports/top-products', { params: { limit } }).then(r => r.data),
+  voidSale: (id: string) => api.post(`/sales/${id}/void`, {}).then(r => r.data),
+  refundSale: (id: string, data: { amount: number; reason?: string; items?: string[] }) =>
+    api.post(`/sales/${id}/refund`, data).then(r => r.data),
+  holdSale: (id: string) => api.post(`/sales/${id}/hold`, {}).then(r => r.data),
+  resumeSale: (id: string) => api.post(`/sales/${id}/resume`, {}).then(r => r.data),
 }
