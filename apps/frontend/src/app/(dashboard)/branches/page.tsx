@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { branchService } from '@/services/branch.service'
@@ -38,23 +38,31 @@ export default function BranchesPage() {
     queryFn: () => branchService.getBranches({ page, limit: 20 }),
   })
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (branch?: Branch) => {
+    if (branch) {
+      setEditing(branch)
+      setForm({
+        name: branch.name,
+        code: branch.code,
+        address: branch.address ?? '',
+        phone: branch.phone ?? '',
+        email: branch.email ?? '',
+        isMain: branch.isMain,
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        name: editing.name,
-        code: editing.code,
-        address: editing.address ?? '',
-        phone: editing.phone ?? '',
-        email: editing.email ?? '',
-        isMain: editing.isMain,
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const createMutation = useMutation({
     mutationFn: () => branchService.createBranch({
@@ -117,7 +125,7 @@ export default function BranchesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Branches</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage store locations and contact details.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Branch</Button>
+        <Button onClick={() => openDialog()}>Add Branch</Button>
       </div>
 
       <Card>
@@ -156,10 +164,7 @@ export default function BranchesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(branch)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(branch)}
                         >
                           Edit
                         </Button>
@@ -190,7 +195,7 @@ export default function BranchesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Branch' : 'Add Branch'}</DialogTitle>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { customerService } from '@/services/customer.service'
@@ -48,25 +48,33 @@ export default function CustomersPage() {
 
   const { data: branches } = useBranches()
 
-  useEffect(() => {
-    if (!open) {
-      setEditing(null)
-      setForm(defaultForm)
-      return
-    }
-    if (editing) {
+  const openDialog = (customer?: Customer) => {
+    if (customer) {
+      setEditing(customer)
       setForm({
-        name: editing.name,
-        email: editing.email ?? '',
-        phone: editing.phone ?? '',
-        address: editing.address ?? '',
-        birthday: editing.birthday ? editing.birthday.split('T')[0] : '',
-        anniversary: editing.anniversary ? editing.anniversary.split('T')[0] : '',
-        notes: editing.notes ?? '',
+        name: customer.name,
+        email: customer.email ?? '',
+        phone: customer.phone ?? '',
+        address: customer.address ?? '',
+        birthday: customer.birthday ? customer.birthday.split('T')[0] : '',
+        anniversary: customer.anniversary ? customer.anniversary.split('T')[0] : '',
+        notes: customer.notes ?? '',
         branchId: '',
       })
+    } else {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
+    }
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Customer> & { branchId?: string }) => customerService.createCustomer(data),
@@ -148,7 +156,7 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customers</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage loyalty members and profiles.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Customer</Button>
+        <Button onClick={() => openDialog()}>Add Customer</Button>
       </div>
 
       <Card>
@@ -199,10 +207,7 @@ export default function CustomersPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(customer)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(customer)}
                         >
                           Edit
                         </Button>
@@ -247,7 +252,7 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>

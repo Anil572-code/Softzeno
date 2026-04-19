@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
+import * as request from 'supertest';
 import { BranchesController } from './branches.controller';
 import { BranchesService } from './branches.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';

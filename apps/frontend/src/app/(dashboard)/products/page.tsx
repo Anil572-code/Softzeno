@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { productService } from '@/services/product.service'
@@ -50,25 +50,33 @@ export default function ProductsPage() {
     queryFn: () => productService.getCategories({ page: 1, limit: 100 }),
   })
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (product?: Product) => {
+    if (product) {
+      setEditing(product)
+      setForm({
+        name: product.name,
+        sellingPrice: String(product.sellingPrice ?? ''),
+        costPrice: String(product.costPrice ?? ''),
+        sku: product.sku ?? '',
+        barcode: product.barcode ?? '',
+        categoryId: product.categoryId ?? '',
+        trackStock: product.trackStock,
+        isRestaurantItem: product.isRestaurantItem,
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        name: editing.name,
-        sellingPrice: String(editing.sellingPrice ?? ''),
-        costPrice: String(editing.costPrice ?? ''),
-        sku: editing.sku ?? '',
-        barcode: editing.barcode ?? '',
-        categoryId: editing.categoryId ?? '',
-        trackStock: editing.trackStock,
-        isRestaurantItem: editing.isRestaurantItem,
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Product>) => productService.createProduct(data),
@@ -135,7 +143,7 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage items, pricing, and availability.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Product</Button>
+        <Button onClick={() => openDialog()}>Add Product</Button>
       </div>
 
       <Card>
@@ -188,10 +196,7 @@ export default function ProductsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setEditing(product)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(product)}
                         >
                           Edit
                         </Button>
@@ -226,7 +231,7 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle>

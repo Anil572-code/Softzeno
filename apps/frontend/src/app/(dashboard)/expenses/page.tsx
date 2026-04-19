@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { expenseService } from '@/services/expense.service'
@@ -48,24 +48,32 @@ export default function ExpensesPage() {
 
   const { data: branches } = useBranches()
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (expense?: Expense) => {
+    if (expense) {
+      setEditing(expense)
+      setForm({
+        category: expense.category,
+        title: expense.title,
+        amount: String(expense.amount),
+        description: expense.description ?? '',
+        receiptUrl: expense.receiptUrl ?? '',
+        expenseDate: expense.expenseDate ? expense.expenseDate.split('T')[0] : '',
+        branchId: expense.branch.id,
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        category: editing.category,
-        title: editing.title,
-        amount: String(editing.amount),
-        description: editing.description ?? '',
-        receiptUrl: editing.receiptUrl ?? '',
-        expenseDate: editing.expenseDate ? editing.expenseDate.split('T')[0] : '',
-        branchId: editing.branch.id,
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const createMutation = useMutation({
     mutationFn: () => expenseService.createExpense({
@@ -128,7 +136,7 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Expenses</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Track operational spending.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Expense</Button>
+        <Button onClick={() => openDialog()}>Add Expense</Button>
       </div>
 
       <Card>
@@ -181,10 +189,7 @@ export default function ExpensesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(expense)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(expense)}
                         >
                           Edit
                         </Button>
@@ -215,7 +220,7 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Expense' : 'Add Expense'}</DialogTitle>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { employeeService } from '@/services/employee.service'
@@ -53,26 +53,34 @@ export default function EmployeesPage() {
     queryFn: () => userService.getUsers({ page: 1, limit: 100 }),
   })
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (employee?: Employee) => {
+    if (employee) {
+      setEditing(employee)
+      setForm({
+        userId: employee.user.id,
+        branchId: employee.branch.id,
+        employeeCode: employee.employeeCode,
+        position: employee.position ?? '',
+        department: employee.department ?? '',
+        salary: employee.salary ? String(employee.salary) : '',
+        commissionRate: employee.commissionRate ? String(employee.commissionRate) : '',
+        hireDate: employee.hireDate ? employee.hireDate.split('T')[0] : '',
+        terminationDate: employee.terminationDate ? employee.terminationDate.split('T')[0] : '',
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        userId: editing.user.id,
-        branchId: editing.branch.id,
-        employeeCode: editing.employeeCode,
-        position: editing.position ?? '',
-        department: editing.department ?? '',
-        salary: editing.salary ? String(editing.salary) : '',
-        commissionRate: editing.commissionRate ? String(editing.commissionRate) : '',
-        hireDate: editing.hireDate ? editing.hireDate.split('T')[0] : '',
-        terminationDate: editing.terminationDate ? editing.terminationDate.split('T')[0] : '',
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const createMutation = useMutation({
     mutationFn: () => employeeService.createEmployee({
@@ -137,7 +145,7 @@ export default function EmployeesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employees</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage staff and attendance records.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Employee</Button>
+        <Button onClick={() => openDialog()}>Add Employee</Button>
       </div>
 
       <Card>
@@ -191,10 +199,7 @@ export default function EmployeesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(employee)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(employee)}
                         >
                           Edit
                         </Button>
@@ -229,7 +234,7 @@ export default function EmployeesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Employee' : 'Add Employee'}</DialogTitle>

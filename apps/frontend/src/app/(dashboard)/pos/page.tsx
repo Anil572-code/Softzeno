@@ -16,6 +16,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Search, Plus, Minus, Trash2, ShoppingCart, Pause, CreditCard, Banknote, QrCode } from 'lucide-react'
 import { toast } from 'sonner'
+import type { Category, Product } from '@/types/product.types'
 
 export default function POSPage() {
   const [search, setSearch] = useState('')
@@ -79,8 +80,9 @@ export default function POSPage() {
       clearCart()
       setPaymentOpen(false)
       toast.success('Sale completed!')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Failed to complete sale')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to complete sale'
+      toast.error(message)
     } finally {
       setProcessing(false)
     }
@@ -108,7 +110,7 @@ export default function POSPage() {
           <Tabs value={activeCategoryId} onValueChange={setActiveCategoryId}>
             <TabsList className="h-8">
               <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
-              {(categories?.data ?? []).map((cat: any) => (
+              {(categories?.data ?? []).map((cat: Category) => (
                 <TabsTrigger key={cat.id} value={cat.id} className="text-xs px-3">
                   {cat.name}
                 </TabsTrigger>
@@ -132,7 +134,7 @@ export default function POSPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {products.map((product: any) => (
+              {products.map((product: Product) => (
                 <button
                   key={product.id}
                   onClick={() => addItem({
@@ -304,7 +306,7 @@ export default function POSPage() {
                 ].map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
-                    onClick={() => setPaymentMethod(key as any)}
+                    onClick={() => setPaymentMethod(key as 'CASH' | 'CARD' | 'QR')}
                     className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-colors ${
                       paymentMethod === key
                         ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600'

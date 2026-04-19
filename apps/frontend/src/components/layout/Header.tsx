@@ -23,15 +23,15 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuthStore()
   const router = useRouter()
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('theme') === 'dark'
+  })
 
   useEffect(() => {
-    const stored = localStorage.getItem('theme')
-    if (stored === 'dark') {
-      setIsDark(true)
-      document.documentElement.classList.add('dark')
-    }
-  }, [])
+    document.documentElement.classList.toggle('dark', isDark)
+    localStorage.setItem('theme', isDark ? 'dark' : 'light')
+  }, [isDark])
 
   function toggleTheme() {
     const next = !isDark

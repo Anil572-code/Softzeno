@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { restaurantService } from '@/services/restaurant.service'
@@ -41,22 +41,30 @@ export default function RestaurantTablesPage() {
     queryFn: () => restaurantService.getTables(),
   })
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (table?: Table) => {
+    if (table) {
+      setEditing(table)
+      setForm({
+        name: table.name,
+        capacity: String(table.capacity ?? 4),
+        section: table.section ?? '',
+        status: table.status,
+        isActive: table.isActive ?? true,
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        name: editing.name,
-        capacity: String(editing.capacity ?? 4),
-        section: editing.section ?? '',
-        status: editing.status,
-        isActive: editing.isActive ?? true,
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: { name: string; capacity?: number; section?: string }) => restaurantService.createTable(data),
@@ -113,7 +121,7 @@ export default function RestaurantTablesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Restaurant Tables</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage dining areas and table status.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Table</Button>
+        <Button onClick={() => openDialog()}>Add Table</Button>
       </div>
 
       <Card>
@@ -152,10 +160,7 @@ export default function RestaurantTablesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(table)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(table)}
                         >
                           Edit
                         </Button>
@@ -172,7 +177,7 @@ export default function RestaurantTablesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Table' : 'Add Table'}</DialogTitle>

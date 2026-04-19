@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { inventoryService } from '@/services/inventory.service'
@@ -32,13 +32,13 @@ export default function InventoryPage() {
   const [adjustForm, setAdjustForm] = useState({ quantity: '', type: 'ADJUSTMENT', notes: '', reference: '' })
   const [transferForm, setTransferForm] = useState({ fromBranchId: '', toBranchId: '', productId: '', quantity: '', notes: '' })
 
-  const { data: branches } = useBranches()
-
-  useEffect(() => {
-    if (!branchId && branches?.data.length) {
-      setBranchId(branches.data[0].id)
-    }
-  }, [branchId, branches?.data])
+  const { data: branches } = useBranches({
+    onSuccess: (data) => {
+      if (!branchId && data.data.length) {
+        setBranchId(data.data[0].id)
+      }
+    },
+  })
 
   const { data: stockLevels, isLoading } = useQuery({
     queryKey: ['inventory', branchId, search, page],

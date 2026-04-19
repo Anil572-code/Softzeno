@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { settingsService } from '@/services/settings.service'
@@ -41,21 +41,29 @@ export default function SettingsPage() {
 
   const { data: branches } = useBranches()
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (setting?: Setting) => {
+    if (setting) {
+      setEditing(setting)
+      setForm({
+        key: setting.key,
+        value: setting.value,
+        group: setting.group ?? '',
+        branchId: setting.branchId ?? '',
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        key: editing.key,
-        value: editing.value,
-        group: editing.group ?? '',
-        branchId: editing.branchId ?? '',
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => settingsService.setSetting(
@@ -94,7 +102,7 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Configure global and branch-specific settings.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Setting</Button>
+        <Button onClick={() => openDialog()}>Add Setting</Button>
       </div>
 
       <Card>
@@ -145,10 +153,7 @@ export default function SettingsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(setting)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(setting)}
                         >
                           Edit
                         </Button>
@@ -169,7 +174,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Setting' : 'Add Setting'}</DialogTitle>

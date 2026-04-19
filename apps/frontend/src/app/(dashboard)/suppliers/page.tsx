@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { supplierService } from '@/services/supplier.service'
@@ -38,23 +38,31 @@ export default function SuppliersPage() {
     queryFn: () => supplierService.getSuppliers({ page, limit: 20, search }),
   })
 
-  useEffect(() => {
-    if (!open) {
+  const openDialog = (supplier?: Supplier) => {
+    if (supplier) {
+      setEditing(supplier)
+      setForm({
+        name: supplier.name,
+        email: supplier.email ?? '',
+        phone: supplier.phone ?? '',
+        address: supplier.address ?? '',
+        taxNumber: supplier.taxNumber ?? '',
+        notes: supplier.notes ?? '',
+      })
+    } else {
       setEditing(null)
       setForm(defaultForm)
-      return
     }
-    if (editing) {
-      setForm({
-        name: editing.name,
-        email: editing.email ?? '',
-        phone: editing.phone ?? '',
-        address: editing.address ?? '',
-        taxNumber: editing.taxNumber ?? '',
-        notes: editing.notes ?? '',
-      })
+    setOpen(true)
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setEditing(null)
+      setForm(defaultForm)
     }
-  }, [open, editing])
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Supplier>) => supplierService.createSupplier(data),
@@ -112,7 +120,7 @@ export default function SuppliersPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Suppliers</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage vendor contacts and balances.</p>
         </div>
-        <Button onClick={() => setOpen(true)}>Add Supplier</Button>
+        <Button onClick={() => openDialog()}>Add Supplier</Button>
       </div>
 
       <Card>
@@ -159,10 +167,7 @@ export default function SuppliersPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditing(supplier)
-                            setOpen(true)
-                          }}
+                          onClick={() => openDialog(supplier)}
                         >
                           Edit
                         </Button>
@@ -197,7 +202,7 @@ export default function SuppliersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
