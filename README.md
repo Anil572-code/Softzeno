@@ -36,7 +36,7 @@ Full-stack point of sale system for restaurants and retail businesses.
    npm run frontend
    ```
 
-Frontend runs on `http://localhost:3000` and the API on `http://localhost:3001/api`.
+Frontend runs on `http://localhost:3000` and the API on `http://localhost:3001/api/v1`.
 
 ## Demo Logins (seeded)
 - **Super Admin:** admin@softzeno.com / `Admin@123456`
