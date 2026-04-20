@@ -2,7 +2,11 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
 const normalizeApiUrl = (url: string) => {
-  const trimmedUrl = url.replace(/\/+$/, '')
+  let trimmedUrl = url
+
+  while (trimmedUrl.endsWith('/')) {
+    trimmedUrl = trimmedUrl.slice(0, -1)
+  }
 
   if (trimmedUrl.endsWith('/api/v1')) {
     return trimmedUrl
