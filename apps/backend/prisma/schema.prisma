@@ -1,0 +1,1115 @@
+// Softzeno POS - Complete Prisma Schema
+// Multi-tenant SaaS POS System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum BusinessType {
+  RESTAURANT
+  CAFE
+  RETAIL
+  GROCERY
+  CLOTHING
+  ELECTRONICS
+  PHARMACY
+  BOOKSTORE
+  MALL
+  GENERAL
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  TENANT_OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN_STAFF
+  INVENTORY_MANAGER
+  ACCOUNTANT
+}
+
+enum OrderStatus {
+  PENDING
+  PLACED
+  PREPARING
+  READY
+  SERVED
+  BILLED
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  QR
+  WALLET
+  SPLIT
+  CREDIT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIAL
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  TRANSFER
+  RETURN
+  WASTAGE
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+}
+
+enum KitchenTicketStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SALARY
+  SUPPLIES
+  MAINTENANCE
+  MARKETING
+  OTHER
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum LoyaltyTransactionType {
+  EARN
+  REDEEM
+  EXPIRE
+  ADJUST
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+enum MembershipTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model Tenant {
+  id                    String             @id @default(cuid())
+  name                  String
+  slug                  String             @unique
+  businessType          BusinessType       @default(GENERAL)
+  email                 String             @unique
+  phone                 String?
+  address               String?
+  logo                  String?
+  settings              Json               @default("{}")
+  subscriptionStatus    SubscriptionStatus @default(ACTIVE)
+  subscriptionExpiresAt DateTime?
+  isActive              Boolean            @default(true)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  deletedAt             DateTime?
+
+  branches          Branch[]
+  users             User[]
+  roles             Role[]
+  customers         Customer[]
+  categories        Category[]
+  brands            Brand[]
+  units             Unit[]
+  taxClasses        TaxClass[]
+  products          Product[]
+  inventory         Inventory[]
+  stockMovements    StockMovement[]
+  suppliers         Supplier[]
+  purchaseOrders    PurchaseOrder[]
+  registers         Register[]
+  shifts            Shift[]
+  sales             Sale[]
+  payments          Payment[]
+  refunds           Refund[]
+  coupons           Coupon[]
+  loyaltyTx         LoyaltyTransaction[]
+  tables            Table[]
+  restaurantOrders  RestaurantOrder[]
+  kitchenTickets    KitchenTicket[]
+  employees         Employee[]
+  attendance        Attendance[]
+  expenses          Expense[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  settings_list     Setting[]
+  subscriptions     Subscription[]
+  stockTransfers    StockTransfer[]
+
+  @@index([slug])
+  @@index([email])
+}
+
+model Branch {
+  id        String    @id @default(cuid())
+  tenantId  String
+  name      String
+  code      String
+  address   String?
+  phone     String?
+  email     String?
+  isMain    Boolean   @default(false)
+  isActive  Boolean   @default(true)
+  settings  Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  users            User[]
+  userBranchAccess UserBranchAccess[]
+  inventory        Inventory[]
+  stockMovements   StockMovement[]
+  purchaseOrders   PurchaseOrder[]
+  registers        Register[]
+  shifts           Shift[]
+  sales            Sale[]
+  restaurantOrders RestaurantOrder[]
+  kitchenTickets   KitchenTicket[]
+  tables           Table[]
+  employees        Employee[]
+  attendance       Attendance[]
+  expenses         Expense[]
+  settings_list    Setting[]
+  stockTransfersFrom StockTransfer[] @relation("FromBranch")
+  stockTransfersTo   StockTransfer[] @relation("ToBranch")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model User {
+  id                String    @id @default(cuid())
+  tenantId          String
+  branchId          String?
+  name              String
+  email             String
+  phone             String?
+  passwordHash      String
+  role              UserRole  @default(CASHIER)
+  isActive          Boolean   @default(true)
+  lastLogin         DateTime?
+  refreshToken      String?
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
+  branch           Branch?            @relation(fields: [branchId], references: [id])
+  branchAccess     UserBranchAccess[]
+  sales            Sale[]
+  shifts           Shift[]
+  stockMovements   StockMovement[]
+  purchaseOrders   PurchaseOrder[]
+  restaurantOrders RestaurantOrder[]
+  expenses         Expense[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  stockTransfers   StockTransfer[]
+  refunds          Refund[]
+  employee         Employee?
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  permissions Json     @default("[]")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Permission {
+  id          String @id @default(cuid())
+  resource    String
+  action      String
+  description String?
+
+  @@unique([resource, action])
+}
+
+model UserBranchAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  branchId  String
+  role      UserRole @default(CASHIER)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, branchId])
+  @@index([userId])
+  @@index([branchId])
+}
+
+model Customer {
+  id             String         @id @default(cuid())
+  tenantId       String
+  branchId       String?
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  birthday       DateTime?
+  anniversary    DateTime?
+  loyaltyPoints  Int            @default(0)
+  creditBalance  Decimal        @default(0) @db.Decimal(10, 2)
+  membershipTier MembershipTier @default(BRONZE)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  tenant           Tenant               @relation(fields: [tenantId], references: [id])
+  sales            Sale[]
+  restaurantOrders RestaurantOrder[]
+  couponUsages     CouponUsage[]
+  loyaltyTx        LoyaltyTransaction[]
+
+  @@index([tenantId])
+  @@index([phone])
+  @@index([email])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String
+  description String?
+  image       String?
+  parentId    String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  parent   Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryChildren")
+  products Product[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  logo        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Unit {
+  id           String  @id @default(cuid())
+  tenantId     String
+  name         String
+  abbreviation String
+  isActive     Boolean @default(true)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model TaxClass {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String
+  rate      Decimal @db.Decimal(5, 2)
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Product {
+  id               String       @id @default(cuid())
+  tenantId         String
+  categoryId       String?
+  brandId          String?
+  unitId           String?
+  taxClassId       String?
+  name             String
+  slug             String
+  description      String?
+  image            String?
+  barcode          String?
+  sku              String?
+  costPrice        Decimal      @default(0) @db.Decimal(10, 2)
+  sellingPrice     Decimal      @default(0) @db.Decimal(10, 2)
+  hasVariants      Boolean      @default(false)
+  trackStock       Boolean      @default(true)
+  isActive         Boolean      @default(true)
+  isRestaurantItem Boolean      @default(false)
+  businessTypes    Json         @default("[]")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  tenant             Tenant               @relation(fields: [tenantId], references: [id])
+  category           Category?            @relation(fields: [categoryId], references: [id])
+  brand              Brand?               @relation(fields: [brandId], references: [id])
+  unit               Unit?                @relation(fields: [unitId], references: [id])
+  taxClass           TaxClass?            @relation(fields: [taxClassId], references: [id])
+  variants           ProductVariant[]
+  ingredients        ProductIngredient[]  @relation("ProductIngredients")
+  usedAsIngredient   ProductIngredient[]  @relation("IngredientProduct")
+  inventory          Inventory[]
+  stockMovements     StockMovement[]
+  purchaseOrderItems PurchaseOrderItem[]
+  saleItems          SaleItem[]
+  restaurantOrderItems RestaurantOrderItem[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([barcode])
+  @@index([sku])
+}
+
+model ProductVariant {
+  id          String    @id @default(cuid())
+  productId   String
+  name        String
+  sku         String?
+  barcode     String?
+  costPrice   Decimal   @default(0) @db.Decimal(10, 2)
+  sellingPrice Decimal  @default(0) @db.Decimal(10, 2)
+  attributes  Json      @default("{}")
+  image       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  product            Product              @relation(fields: [productId], references: [id])
+  inventory          Inventory[]
+  stockMovements     StockMovement[]
+  purchaseOrderItems PurchaseOrderItem[]
+  saleItems          SaleItem[]
+  restaurantOrderItems RestaurantOrderItem[]
+
+  @@index([productId])
+  @@index([barcode])
+  @@index([sku])
+}
+
+model ProductIngredient {
+  id                  String  @id @default(cuid())
+  productId           String
+  ingredientProductId String
+  quantity            Decimal @db.Decimal(10, 4)
+  unit                String?
+
+  product           Product @relation("ProductIngredients", fields: [productId], references: [id])
+  ingredientProduct Product @relation("IngredientProduct", fields: [ingredientProductId], references: [id])
+
+  @@unique([productId, ingredientProductId])
+}
+
+model Inventory {
+  id           String    @id @default(cuid())
+  tenantId     String
+  branchId     String
+  productId    String
+  variantId    String?
+  quantity     Decimal   @default(0) @db.Decimal(10, 4)
+  reservedQty  Decimal   @default(0) @db.Decimal(10, 4)
+  reorderLevel Decimal   @default(0) @db.Decimal(10, 4)
+  maxLevel     Decimal?  @db.Decimal(10, 4)
+  location     String?
+  batchNumber  String?
+  expiryDate   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+  branch  Branch         @relation(fields: [branchId], references: [id])
+  product Product        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([branchId, productId, variantId])
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([productId])
+}
+
+model StockMovement {
+  id        String            @id @default(cuid())
+  tenantId  String
+  branchId  String
+  productId String
+  variantId String?
+  type      StockMovementType
+  quantity  Decimal           @db.Decimal(10, 4)
+  reference String?
+  notes     String?
+  userId    String?
+  createdAt DateTime          @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+  branch  Branch         @relation(fields: [branchId], references: [id])
+  product Product        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+  user    User?          @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([productId])
+}
+
+model Supplier {
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  taxNumber  String?
+  notes      String?
+  balance    Decimal   @default(0) @db.Decimal(10, 2)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+}
+
+model PurchaseOrder {
+  id             String              @id @default(cuid())
+  tenantId       String
+  branchId       String
+  supplierId     String
+  orderNumber    String
+  status         PurchaseOrderStatus @default(DRAFT)
+  subtotal       Decimal             @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal             @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal             @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal             @default(0) @db.Decimal(10, 2)
+  paidAmount     Decimal             @default(0) @db.Decimal(10, 2)
+  notes          String?
+  orderedAt      DateTime?
+  receivedAt     DateTime?
+  userId         String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  tenant   Tenant              @relation(fields: [tenantId], references: [id])
+  branch   Branch              @relation(fields: [branchId], references: [id])
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  user     User?               @relation(fields: [userId], references: [id])
+  items    PurchaseOrderItem[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  variantId       String?
+  quantity        Decimal @db.Decimal(10, 4)
+  receivedQty     Decimal @default(0) @db.Decimal(10, 4)
+  unitCost        Decimal @db.Decimal(10, 2)
+  taxAmount       Decimal @default(0) @db.Decimal(10, 2)
+  totalCost       Decimal @db.Decimal(10, 2)
+
+  purchaseOrder PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id])
+  product       Product        @relation(fields: [productId], references: [id])
+  variant       ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([purchaseOrderId])
+}
+
+model Register {
+  id             String   @id @default(cuid())
+  tenantId       String
+  branchId       String
+  name           String
+  isActive       Boolean  @default(true)
+  currentShiftId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  branch Branch  @relation(fields: [branchId], references: [id])
+  shifts Shift[]
+  sales  Sale[]
+
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model Shift {
+  id             String      @id @default(cuid())
+  tenantId       String
+  branchId       String
+  registerId     String
+  userId         String
+  openingBalance Decimal     @default(0) @db.Decimal(10, 2)
+  closingBalance Decimal?    @db.Decimal(10, 2)
+  cashSales      Decimal     @default(0) @db.Decimal(10, 2)
+  cardSales      Decimal     @default(0) @db.Decimal(10, 2)
+  expectedCash   Decimal     @default(0) @db.Decimal(10, 2)
+  notes          String?
+  openedAt       DateTime    @default(now())
+  closedAt       DateTime?
+  status         ShiftStatus @default(OPEN)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  register Register @relation(fields: [registerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  sales    Sale[]
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([registerId])
+}
+
+model Sale {
+  id                  String      @id @default(cuid())
+  tenantId            String
+  branchId            String
+  registerId          String?
+  shiftId             String?
+  customerId          String?
+  userId              String
+  saleNumber          String
+  orderType           OrderType   @default(DINE_IN)
+  status              OrderStatus @default(PENDING)
+  subtotal            Decimal     @default(0) @db.Decimal(10, 2)
+  taxAmount           Decimal     @default(0) @db.Decimal(10, 2)
+  discountAmount      Decimal     @default(0) @db.Decimal(10, 2)
+  tipAmount           Decimal     @default(0) @db.Decimal(10, 2)
+  serviceChargeAmount Decimal     @default(0) @db.Decimal(10, 2)
+  totalAmount         Decimal     @default(0) @db.Decimal(10, 2)
+  paidAmount          Decimal     @default(0) @db.Decimal(10, 2)
+  changeAmount        Decimal     @default(0) @db.Decimal(10, 2)
+  notes               String?
+  tableId             String?
+  holdedAt            DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  deletedAt           DateTime?
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  register Register? @relation(fields: [registerId], references: [id])
+  shift    Shift?    @relation(fields: [shiftId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  items    SaleItem[]
+  payments Payment[]
+  refunds  Refund[]
+  couponUsages CouponUsage[]
+  loyaltyTx LoyaltyTransaction[]
+
+  @@unique([tenantId, saleNumber])
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id             String   @id @default(cuid())
+  saleId         String
+  productId      String
+  variantId      String?
+  name           String
+  sku            String?
+  quantity       Decimal  @db.Decimal(10, 4)
+  unitPrice      Decimal  @db.Decimal(10, 2)
+  costPrice      Decimal  @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal  @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal  @default(0) @db.Decimal(10, 2)
+  totalPrice     Decimal  @db.Decimal(10, 2)
+  notes          String?
+  modifiers      Json     @default("[]")
+  createdAt      DateTime @default(now())
+
+  sale    Sale           @relation(fields: [saleId], references: [id])
+  product Product        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  saleId      String
+  tenantId    String
+  method      PaymentMethod
+  amount      Decimal       @db.Decimal(10, 2)
+  reference   String?
+  status      PaymentStatus @default(PENDING)
+  metadata    Json          @default("{}")
+  processedAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  sale   Sale   @relation(fields: [saleId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([saleId])
+  @@index([tenantId])
+}
+
+model Refund {
+  id        String        @id @default(cuid())
+  saleId    String
+  tenantId  String
+  userId    String
+  amount    Decimal       @db.Decimal(10, 2)
+  reason    String?
+  items     Json          @default("[]")
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  sale   Sale   @relation(fields: [saleId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([saleId])
+  @@index([tenantId])
+}
+
+model Coupon {
+  id                String      @id @default(cuid())
+  tenantId          String
+  code              String
+  name              String
+  type              CouponType  @default(PERCENTAGE)
+  value             Decimal     @db.Decimal(10, 2)
+  minOrderAmount    Decimal?    @db.Decimal(10, 2)
+  maxDiscountAmount Decimal?    @db.Decimal(10, 2)
+  usageLimit        Int?
+  usedCount         Int         @default(0)
+  validFrom         DateTime?
+  validTo           DateTime?
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id])
+  usages CouponUsage[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model CouponUsage {
+  id             String   @id @default(cuid())
+  couponId       String
+  saleId         String
+  customerId     String?
+  discountAmount Decimal  @db.Decimal(10, 2)
+  usedAt         DateTime @default(now())
+
+  coupon   Coupon    @relation(fields: [couponId], references: [id])
+  sale     Sale      @relation(fields: [saleId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([couponId])
+  @@index([saleId])
+}
+
+model LoyaltyTransaction {
+  id         String                 @id @default(cuid())
+  customerId String
+  tenantId   String
+  saleId     String?
+  points     Int
+  type       LoyaltyTransactionType @default(EARN)
+  balance    Int
+  notes      String?
+  createdAt  DateTime               @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  sale     Sale?    @relation(fields: [saleId], references: [id])
+
+  @@index([customerId])
+  @@index([tenantId])
+}
+
+model Table {
+  id        String      @id @default(cuid())
+  tenantId  String
+  branchId  String
+  name      String
+  capacity  Int         @default(4)
+  status    TableStatus @default(AVAILABLE)
+  section   String?
+  position  Json?
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  branch           Branch            @relation(fields: [branchId], references: [id])
+  restaurantOrders RestaurantOrder[]
+
+  @@unique([branchId, name])
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model RestaurantOrder {
+  id            String      @id @default(cuid())
+  tenantId      String
+  branchId      String
+  tableId       String?
+  userId        String
+  customerId    String?
+  orderNumber   String
+  type          OrderType   @default(DINE_IN)
+  status        OrderStatus @default(PENDING)
+  partySize     Int         @default(1)
+  notes         String?
+  kotPrinted    Boolean     @default(false)
+  totalItems    Int         @default(0)
+  subtotal      Decimal     @default(0) @db.Decimal(10, 2)
+  taxAmount     Decimal     @default(0) @db.Decimal(10, 2)
+  serviceCharge Decimal     @default(0) @db.Decimal(10, 2)
+  totalAmount   Decimal     @default(0) @db.Decimal(10, 2)
+  placedAt      DateTime?
+  readyAt       DateTime?
+  servedAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  tenant         Tenant                @relation(fields: [tenantId], references: [id])
+  branch         Branch                @relation(fields: [branchId], references: [id])
+  table          Table?                @relation(fields: [tableId], references: [id])
+  user           User                  @relation(fields: [userId], references: [id])
+  customer       Customer?             @relation(fields: [customerId], references: [id])
+  items          RestaurantOrderItem[]
+  kitchenTickets KitchenTicket[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([tableId])
+}
+
+model RestaurantOrderItem {
+  id                String      @id @default(cuid())
+  restaurantOrderId String
+  productId         String
+  variantId         String?
+  name              String
+  quantity          Int
+  unitPrice         Decimal     @db.Decimal(10, 2)
+  modifiers         Json        @default("[]")
+  notes             String?
+  status            OrderStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+
+  restaurantOrder RestaurantOrder @relation(fields: [restaurantOrderId], references: [id])
+  product         Product         @relation(fields: [productId], references: [id])
+  variant         ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([restaurantOrderId])
+}
+
+model KitchenTicket {
+  id                String              @id @default(cuid())
+  tenantId          String
+  branchId          String
+  restaurantOrderId String
+  ticketNumber      String
+  items             Json                @default("[]")
+  status            KitchenTicketStatus @default(PENDING)
+  notes             String?
+  printedAt         DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime            @default(now())
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  restaurantOrder RestaurantOrder @relation(fields: [restaurantOrderId], references: [id])
+
+  @@unique([tenantId, ticketNumber])
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([restaurantOrderId])
+}
+
+model Employee {
+  id               String    @id @default(cuid())
+  tenantId         String
+  branchId         String
+  userId           String    @unique
+  employeeCode     String
+  position         String?
+  department       String?
+  salary           Decimal?  @db.Decimal(10, 2)
+  commissionRate   Decimal?  @db.Decimal(5, 2)
+  hireDate         DateTime?
+  terminationDate  DateTime?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+  branch     Branch       @relation(fields: [branchId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+  attendance Attendance[]
+
+  @@unique([tenantId, employeeCode])
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model Attendance {
+  id         String    @id @default(cuid())
+  employeeId String
+  tenantId   String
+  branchId   String
+  date       DateTime  @db.Date
+  checkIn    DateTime?
+  checkOut   DateTime?
+  workHours  Decimal?  @db.Decimal(5, 2)
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([tenantId])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  tenantId    String
+  branchId    String
+  userId      String
+  category    ExpenseCategory @default(OTHER)
+  title       String
+  amount      Decimal         @db.Decimal(10, 2)
+  description String?
+  receiptUrl  String?
+  expenseDate DateTime
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([resource, resourceId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  tenantId  String
+  branchId  String?
+  key       String
+  value     String
+  group     String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@unique([tenantId, branchId, key])
+  @@index([tenantId])
+}
+
+model Subscription {
+  id           String             @id @default(cuid())
+  tenantId     String
+  plan         String
+  status       SubscriptionStatus @default(ACTIVE)
+  features     Json               @default("{}")
+  monthlyPrice Decimal            @db.Decimal(10, 2)
+  billingCycle String             @default("monthly")
+  startDate    DateTime
+  endDate      DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model StockTransfer {
+  id           String         @id @default(cuid())
+  tenantId     String
+  fromBranchId String
+  toBranchId   String
+  userId       String
+  status       TransferStatus @default(PENDING)
+  notes        String?
+  items        Json           @default("[]")
+  requestedAt  DateTime       @default(now())
+  approvedAt   DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id])
+  fromBranch Branch @relation("FromBranch", fields: [fromBranchId], references: [id])
+  toBranch   Branch @relation("ToBranch", fields: [toBranchId], references: [id])
+  user       User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([fromBranchId])
+  @@index([toBranchId])
+}
