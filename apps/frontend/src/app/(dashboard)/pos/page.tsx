@@ -134,39 +134,42 @@ export default function POSPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {products.map((product: Product) => (
-                <button
-                  key={product.id}
-                  onClick={() => addItem({
-                    productId: product.id,
-                    name: product.name,
-                    sku: product.sku ?? '',
-                    unitPrice: product.sellingPrice,
-                    taxRate: product.taxClass?.rate ?? 0,
-                  })}
-                  className="bg-white dark:bg-slate-800 rounded-lg p-3 text-left hover:shadow-md hover:border-indigo-300 border border-transparent transition-all active:scale-95 touch-manipulation"
-                >
-                  <div className="w-full aspect-square bg-gray-100 dark:bg-slate-700 rounded-md mb-2 flex items-center justify-center">
-                    {product.image ? (
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-md" />
-                    ) : (
-                      <span className="text-2xl font-bold text-gray-300">
-                        {product.name.charAt(0)}
-                      </span>
+              {products.map((product: Product) => {
+                const stockQty = product.stockQty ?? 0
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => addItem({
+                      productId: product.id,
+                      name: product.name,
+                      sku: product.sku ?? '',
+                      unitPrice: product.sellingPrice,
+                      taxRate: product.taxClass?.rate ?? 0,
+                    })}
+                    className="bg-white dark:bg-slate-800 rounded-lg p-3 text-left hover:shadow-md hover:border-indigo-300 border border-transparent transition-all active:scale-95 touch-manipulation"
+                  >
+                    <div className="w-full aspect-square bg-gray-100 dark:bg-slate-700 rounded-md mb-2 flex items-center justify-center">
+                      {product.image ? (
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-md" />
+                      ) : (
+                        <span className="text-2xl font-bold text-gray-300">
+                          {product.name.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-medium text-gray-800 dark:text-white truncate">{product.name}</p>
+                    <p className="text-sm font-bold text-indigo-600 mt-0.5">{formatCurrency(product.sellingPrice)}</p>
+                    {product.trackStock && (
+                      <Badge
+                        variant={stockQty <= 0 ? 'destructive' : stockQty <= 5 ? 'outline' : 'secondary'}
+                        className="text-xs mt-1 py-0"
+                      >
+                        {stockQty <= 0 ? 'Out' : `${stockQty} left`}
+                      </Badge>
                     )}
-                  </div>
-                  <p className="text-xs font-medium text-gray-800 dark:text-white truncate">{product.name}</p>
-                  <p className="text-sm font-bold text-indigo-600 mt-0.5">{formatCurrency(product.sellingPrice)}</p>
-                  {product.trackStock && (
-                    <Badge
-                      variant={product.stockQty <= 0 ? 'destructive' : product.stockQty <= 5 ? 'outline' : 'secondary'}
-                      className="text-xs mt-1 py-0"
-                    >
-                      {product.stockQty <= 0 ? 'Out' : `${product.stockQty} left`}
-                    </Badge>
-                  )}
-                </button>
-              ))}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { expenseService } from '@/services/expense.service'
 import { useBranches } from '@/hooks/useBranches'
-import type { Expense } from '@/types/expense.types'
+import type { Expense, ExpenseCategory } from '@/types/expense.types'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,7 +23,17 @@ import {
 
 const categories = ['RENT', 'UTILITIES', 'SALARY', 'SUPPLIES', 'MAINTENANCE', 'MARKETING', 'OTHER'] as const
 
-const defaultForm = {
+type ExpenseFormState = {
+  category: ExpenseCategory
+  title: string
+  amount: string
+  description: string
+  receiptUrl: string
+  expenseDate: string
+  branchId: string
+}
+
+const defaultForm: ExpenseFormState = {
   category: 'OTHER',
   title: '',
   amount: '',
@@ -228,7 +238,7 @@ export default function ExpensesPage() {
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label>Category</Label>
-              <Select value={form.category} onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}>
+                      <Select value={form.category} onValueChange={(value) => setForm((prev) => ({ ...prev, category: value as ExpenseCategory }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>

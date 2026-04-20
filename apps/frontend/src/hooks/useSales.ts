@@ -3,32 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { saleService } from '@/services/sale.service'
 
-export function useSaleStats() {
-  return useQuery({
-    queryKey: ['sale-stats'],
-    queryFn: () => saleService.getStats(),
-    refetchInterval: 60000,
-  })
-}
-
 export function useSales(params?: { page?: number; limit?: number; startDate?: string; endDate?: string }) {
   return useQuery({
     queryKey: ['sales', params],
     queryFn: () => saleService.getSales(params),
-  })
-}
-
-export function useDailyRevenue(days = 30) {
-  return useQuery({
-    queryKey: ['daily-revenue', days],
-    queryFn: () => saleService.getDailyRevenue(days),
-  })
-}
-
-export function useTopProducts(limit = 10) {
-  return useQuery({
-    queryKey: ['top-products', limit],
-    queryFn: () => saleService.getTopProducts(limit),
   })
 }
 

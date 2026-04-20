@@ -32,32 +32,27 @@ export default function InventoryPage() {
   const [adjustForm, setAdjustForm] = useState({ quantity: '', type: 'ADJUSTMENT', notes: '', reference: '' })
   const [transferForm, setTransferForm] = useState({ fromBranchId: '', toBranchId: '', productId: '', quantity: '', notes: '' })
 
-  const { data: branches } = useBranches({
-    onSuccess: (data) => {
-      if (!branchId && data.data.length) {
-        setBranchId(data.data[0].id)
-      }
-    },
-  })
+  const { data: branches } = useBranches()
+  const effectiveBranchId = branchId || branches?.data[0]?.id || ''
 
   const { data: stockLevels, isLoading } = useQuery({
-    queryKey: ['inventory', branchId, search, page],
-    queryFn: () => inventoryService.getStockLevels(branchId, { page, limit: 20, search }),
-    enabled: !!branchId,
+    queryKey: ['inventory', effectiveBranchId, search, page],
+    queryFn: () => inventoryService.getStockLevels(effectiveBranchId, { page, limit: 20, search }),
+    enabled: !!effectiveBranchId,
   })
 
   const { data: lowStock } = useQuery({
-    queryKey: ['inventory-low', branchId],
-    queryFn: () => inventoryService.getLowStock(branchId),
-    enabled: !!branchId,
+    queryKey: ['inventory-low', effectiveBranchId],
+    queryFn: () => inventoryService.getLowStock(effectiveBranchId),
+    enabled: !!effectiveBranchId,
   })
 
   const adjustMutation = useMutation({
     mutationFn: (data: { branchId: string; productId: string; quantity: number; type: string; notes?: string; reference?: string }) =>
       inventoryService.adjustStock(data.branchId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory', branchId] })
-      queryClient.invalidateQueries({ queryKey: ['inventory-low', branchId] })
+      queryClient.invalidateQueries({ queryKey: ['inventory', effectiveBranchId] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-low', effectiveBranchId] })
       toast.success('Stock adjusted')
       setAdjustOpen(false)
       setAdjustForm({ quantity: '', type: 'ADJUSTMENT', notes: '', reference: '' })
@@ -72,7 +67,7 @@ export default function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
       toast.success('Stock transferred')
       setTransferOpen(false)
-      setTransferForm({ fromBranchId: branchId, toBranchId: '', productId: '', quantity: '', notes: '' })
+      setTransferForm({ fromBranchId: effectiveBranchId, toBranchId: '', productId: '', quantity: '', notes: '' })
     },
     onError: () => toast.error('Failed to transfer stock'),
   })
@@ -80,14 +75,14 @@ export default function InventoryPage() {
   const productsForTransfer = useMemo(() => stockLevels?.data ?? [], [stockLevels?.data])
 
   const handleAdjustSubmit = () => {
-    if (!selectedId || !branchId) return
+    if (!selectedId || !effectiveBranchId) return
     const quantity = Number(adjustForm.quantity)
     if (!quantity || Number.isNaN(quantity)) {
       toast.error('Quantity is required')
       return
     }
     adjustMutation.mutate({
-      branchId,
+      branchId: effectiveBranchId,
       productId: selectedId,
       quantity,
       type: adjustForm.type,
@@ -107,7 +102,7 @@ export default function InventoryPage() {
       return
     }
     transferMutation.mutate({
-      fromBranchId: transferForm.fromBranchId,
+      fromBranchId: transferForm.fromBranchId || effectiveBranchId,
       toBranchId: transferForm.toBranchId,
       productId: transferForm.productId,
       quantity,
@@ -123,7 +118,7 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Track stock levels across branches.</p>
         </div>
         <Button onClick={() => {
-          setTransferForm({ fromBranchId: branchId, toBranchId: '', productId: '', quantity: '', notes: '' })
+          setTransferForm({ fromBranchId: effectiveBranchId, toBranchId: '', productId: '', quantity: '', notes: '' })
           setTransferOpen(true)
         }}>
           Transfer Stock
@@ -139,7 +134,7 @@ export default function InventoryPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="sm:max-w-xs"
             />
-            <Select value={branchId} onValueChange={setBranchId}>
+            <Select value={effectiveBranchId} onValueChange={setBranchId}>
               <SelectTrigger className="sm:max-w-xs">
                 <SelectValue placeholder="Select branch" />
               </SelectTrigger>
@@ -162,7 +157,7 @@ export default function InventoryPage() {
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs uppercase text-gray-400">Branch</div>
-              <div className="text-lg font-semibold text-gray-900">{branches?.data.find((b) => b.id === branchId)?.name ?? '-'}</div>
+              <div className="text-lg font-semibold text-gray-900">{branches?.data.find((b) => b.id === effectiveBranchId)?.name ?? '-'}</div>
             </div>
           </div>
 
