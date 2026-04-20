@@ -31,6 +31,8 @@ jobs:
         run: npm install
       - name: Build frontend
         run: npm run build --workspace=frontend
+      - name: Add .nojekyll
+        run: touch apps/frontend/out/.nojekyll
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
