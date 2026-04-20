@@ -1,14 +1,21 @@
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
-const NORMALIZED_API_URL = RAW_API_URL.replace(/\/+$/, '')
-const API_URL_WITH_VERSION = NORMALIZED_API_URL.endsWith('/api/v1')
-  ? NORMALIZED_API_URL
-  : NORMALIZED_API_URL.endsWith('/api')
-    ? `${NORMALIZED_API_URL}/v1`
-    : `${NORMALIZED_API_URL}/api/v1`
+const normalizeApiUrl = (url: string) => {
+  const trimmedUrl = url.replace(/\/+$/, '')
 
-export const API_URL = API_URL_WITH_VERSION
+  if (trimmedUrl.endsWith('/api/v1')) {
+    return trimmedUrl
+  }
+
+  if (trimmedUrl.endsWith('/api')) {
+    return `${trimmedUrl}/v1`
+  }
+
+  return `${trimmedUrl}/api/v1`
+}
+
+export const API_URL = normalizeApiUrl(RAW_API_URL)
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Softzeno POS'
 export const APP_LOGO_URL =
   process.env.NEXT_PUBLIC_APP_LOGO_URL || `${BASE_PATH}/branding/softzeno-logo.jpeg`
