@@ -11,6 +11,7 @@ export interface User {
 export interface LoginRequest {
   email: string
   password: string
+  branchId: string
 }
 
 export interface LoginResponse {
