@@ -1,15 +1,18 @@
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm install
 
 COPY . .
+
 RUN npx prisma generate
 RUN npm run build
 RUN echo "===== DIST FILES =====" && find /app/dist -maxdepth 4 -type f
 
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
+
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
@@ -18,4 +21,5 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 
 EXPOSE 3001
+
 CMD ["node", "dist/src/main.js"]
