@@ -2,6 +2,8 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
+RUN apt-get update -y && apt-get install -y openssl
+
 COPY package*.json ./
 RUN npm install
 
@@ -14,6 +16,8 @@ RUN echo "===== DIST FILES =====" && find /app/dist -maxdepth 4 -type f
 FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
+
+RUN apt-get update -y && apt-get install -y openssl
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
