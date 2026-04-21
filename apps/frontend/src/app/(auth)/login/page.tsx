@@ -50,7 +50,6 @@ export default function LoginPage() {
               />
             </div>
           </div>
-
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription>Sign in to Softzeno POS</CardDescription>
         </CardHeader>
@@ -117,7 +116,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Don&apos;t have an account{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-blue-600 font-medium hover:underline">
               Create one
             </Link>
