@@ -7,6 +7,7 @@ RUN npm install
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+RUN echo "===== DIST FILES =====" && find /app/dist -maxdepth 4 -type f
 
 FROM node:20-alpine AS runner
 WORKDIR /app
