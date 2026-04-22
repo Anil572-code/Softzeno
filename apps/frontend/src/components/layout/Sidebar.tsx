@@ -27,14 +27,12 @@ const navGroups = [
     group: 'Sales',
     items: [
       { label: 'Orders', href: '/orders', icon: ClipboardList },
-      { label: 'Sales History', href: '/orders', icon: DollarSign },
     ],
   },
   {
     group: 'Catalog',
     items: [
       { label: 'Products', href: '/products', icon: Package },
-      { label: 'Categories', href: '/products', icon: Package },
       { label: 'Inventory', href: '/inventory', icon: Boxes },
     ],
   },
