@@ -10,9 +10,66 @@ import { reportService } from '@/services/report.service'
 import { inventoryService } from '@/services/inventory.service'
 import { useAuthStore } from '@/store/auth.store'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts'
-import { TrendingUp, ShoppingCart, DollarSign, Package, AlertTriangle } from 'lucide-react'
+import {
+  TrendingUp,
+  ShoppingCart,
+  DollarSign,
+  Package,
+  AlertTriangle,
+} from 'lucide-react'
+
+type DashboardData = {
+  today?: {
+    revenue?: number | string
+    sales?: number | string
+  }
+  thisMonth?: {
+    revenue?: number | string
+  }
+  lowStockAlerts?: number | string
+  recentSales?: RecentSale[]
+}
+
+type SalesReportRow = {
+  period?: string
+  revenue?: number | string
+}
+
+type ProductReportRow = {
+  product: {
+    id: string
+    name: string
+  }
+  revenue?: number | string
+  quantity?: number | string
+}
+
+type RecentSale = {
+  id: string
+  saleNumber: string
+  customer?: {
+    name?: string
+  }
+  totalAmount?: number | string
+  status: string
+}
+
+type LowStockItem = {
+  id: string
+  quantity?: number | string
+  product: {
+    name: string
+    sku?: string
+  }
+}
 
 export default function DashboardPage() {
   const branchId = useAuthStore((state) => state.user?.branchId)
@@ -21,6 +78,7 @@ export default function DashboardPage() {
     const end = new Date()
     const start = new Date()
     start.setDate(end.getDate() - 6)
+
     return {
       startDate: start.toISOString().split('T')[0],
       endDate: end.toISOString().split('T')[0],
@@ -35,7 +93,8 @@ export default function DashboardPage() {
 
   const { data: salesReport, isLoading: loadingSales } = useQuery({
     queryKey: ['sales-report', startDate, endDate],
-    queryFn: () => reportService.getSalesReport({ startDate, endDate, groupBy: 'day' }),
+    queryFn: () =>
+      reportService.getSalesReport({ startDate, endDate, groupBy: 'day' }),
   })
 
   const { data: productReport, isLoading: loadingProducts } = useQuery({
@@ -45,26 +104,36 @@ export default function DashboardPage() {
 
   const { data: lowStockItems, isLoading: loadingLowStock } = useQuery({
     queryKey: ['low-stock', branchId],
-    queryFn: () => (branchId ? inventoryService.getLowStock(branchId) : Promise.resolve([])),
+    queryFn: () =>
+      branchId ? inventoryService.getLowStock(branchId) : Promise.resolve([]),
     enabled: !!branchId,
   })
 
-  const dashboardData =
-    dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard) ? dashboard : {}
+  const dashboardData: DashboardData =
+    dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard)
+      ? (dashboard as DashboardData)
+      : {}
 
-  const salesRows = Array.isArray(salesReport) ? salesReport : []
-  const productRows = Array.isArray(productReport) ? productReport : []
-  const lowStockRows = Array.isArray(lowStockItems) ? lowStockItems : []
-  const recentSales = Array.isArray((dashboardData as { recentSales?: unknown }).recentSales)
-    ? ((dashboardData as { recentSales?: unknown[] }).recentSales ?? [])
+  const salesRows: SalesReportRow[] = Array.isArray(salesReport)
+    ? (salesReport as SalesReportRow[])
     : []
 
-  const todayRevenue = Number((dashboardData as { today?: { revenue?: number | string } }).today?.revenue ?? 0)
-  const todaySales = Number((dashboardData as { today?: { sales?: number | string } }).today?.sales ?? 0)
-  const monthlyRevenue = Number(
-    (dashboardData as { thisMonth?: { revenue?: number | string } }).thisMonth?.revenue ?? 0
-  )
-  const lowStockAlerts = Number((dashboardData as { lowStockAlerts?: number | string }).lowStockAlerts ?? 0)
+  const productRows: ProductReportRow[] = Array.isArray(productReport)
+    ? (productReport as ProductReportRow[])
+    : []
+
+  const lowStockRows: LowStockItem[] = Array.isArray(lowStockItems)
+    ? (lowStockItems as LowStockItem[])
+    : []
+
+  const recentSales: RecentSale[] = Array.isArray(dashboardData.recentSales)
+    ? dashboardData.recentSales
+    : []
+
+  const todayRevenue = Number(dashboardData.today?.revenue ?? 0)
+  const todaySales = Number(dashboardData.today?.sales ?? 0)
+  const monthlyRevenue = Number(dashboardData.thisMonth?.revenue ?? 0)
+  const lowStockAlerts = Number(dashboardData.lowStockAlerts ?? 0)
 
   const statCards = [
     {
@@ -101,31 +170,31 @@ export default function DashboardPage() {
     },
   ]
 
-  const revenueData = salesRows.map((row: { period?: string; revenue?: number | string }) => ({
+  const revenueData = salesRows.map((row) => ({
     date: row.period ?? '',
     revenue: Number(row.revenue ?? 0),
   }))
 
   const topProducts = productRows
     .slice()
-    .sort(
-      (
-        a: { revenue?: number | string },
-        b: { revenue?: number | string }
-      ) => Number(b.revenue ?? 0) - Number(a.revenue ?? 0)
-    )
+    .sort((a, b) => Number(b.revenue ?? 0) - Number(a.revenue ?? 0))
     .slice(0, 5)
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back! Here is the latest overview.</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Dashboard
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Welcome back! Here is the latest overview.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon
+
           return (
             <Card key={card.title}>
               <CardContent className="p-6">
@@ -134,13 +203,21 @@ export default function DashboardPage() {
                 ) : (
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{card.title}</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{card.value}</p>
-                      <Badge variant="secondary" className="mt-2 text-gray-600 bg-gray-100">
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {card.title}
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                        {card.value}
+                      </p>
+                      <Badge
+                        variant="secondary"
+                        className="mt-2 bg-gray-100 text-gray-600"
+                      >
                         {card.helper}
                       </Badge>
                     </div>
-                    <div className={`p-3 rounded-lg ${card.bg}`}>
+
+                    <div className={`rounded-lg p-3 ${card.bg}`}>
                       <Icon className={`h-5 w-5 ${card.color}`} />
                     </div>
                   </div>
@@ -151,24 +228,32 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Revenue Overview (Last 7 Days)</CardTitle>
+            <CardTitle className="text-base">
+              Revenue Overview (Last 7 Days)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loadingSales ? (
               <Skeleton className="h-64 w-full" />
             ) : revenueData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-                <TrendingUp className="h-8 w-8 mb-2" />
+              <div className="flex h-48 flex-col items-center justify-center text-gray-400">
+                <TrendingUp className="mb-2 h-8 w-8" />
                 <p className="text-sm">No revenue data yet</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={revenueData}>
                   <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="colorRevenue"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
@@ -176,8 +261,20 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip formatter={(value) => (typeof value === 'number' ? formatCurrency(value) : value ?? '')} />
-                  <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#colorRevenue)" />
+                  <Tooltip
+                    formatter={(value) =>
+                      typeof value === 'number'
+                        ? formatCurrency(value)
+                        : value ?? ''
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    fill="url(#colorRevenue)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -192,48 +289,49 @@ export default function DashboardPage() {
             {loadingProducts ? (
               <Skeleton className="h-64 w-full" />
             ) : topProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-                <Package className="h-8 w-8 mb-2" />
+              <div className="flex h-48 flex-col items-center justify-center text-gray-400">
+                <Package className="mb-2 h-8 w-8" />
                 <p className="text-sm">No sales data yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {topProducts.map(
-                  (
-                    p: {
-                      product: { id: string; name: string }
-                      revenue?: number | string
-                      quantity?: number | string
-                    },
-                    i: number
-                  ) => (
-                    <div key={p.product.id} className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-gray-400 w-4">#{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{p.product.name}</p>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
-                          <div
-                            className="bg-indigo-500 h-1.5 rounded-full"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                (Number(p.revenue ?? 0) / Number(topProducts[0]?.revenue || 1)) * 100
-                              )}%`,
-                            }}
-                          />
-                        </div>
+                {topProducts.map((p, i) => (
+                  <div key={p.product.id} className="flex items-center gap-3">
+                    <span className="w-4 text-xs font-bold text-gray-400">
+                      #{i + 1}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {p.product.name}
+                      </p>
+                      <div className="mt-1 h-1.5 w-full rounded-full bg-gray-100">
+                        <div
+                          className="h-1.5 rounded-full bg-indigo-500"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (Number(p.revenue ?? 0) /
+                                Number(topProducts[0]?.revenue || 1)) *
+                                100
+                            )}%`,
+                          }}
+                        />
                       </div>
-                      <span className="text-xs text-gray-500">{Number(p.quantity ?? 0)} sold</span>
                     </div>
-                  )
-                )}
+
+                    <span className="text-xs text-gray-500">
+                      {Number(p.quantity ?? 0)} sold
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Sales</CardTitle>
@@ -242,32 +340,34 @@ export default function DashboardPage() {
             {loadingDashboard ? (
               <Skeleton className="h-48 w-full" />
             ) : recentSales.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-gray-400">
-                <ShoppingCart className="h-8 w-8 mb-2" />
+              <div className="flex h-32 flex-col items-center justify-center text-gray-400">
+                <ShoppingCart className="mb-2 h-8 w-8" />
                 <p className="text-sm">No sales yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {recentSales.map(
-                  (sale: {
-                    id: string
-                    saleNumber: string
-                    customer?: { name?: string }
-                    totalAmount?: number | string
-                    status: string
-                  }) => (
-                    <div key={sale.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
-                        <p className="text-sm font-medium">{sale.saleNumber}</p>
-                        <p className="text-xs text-gray-500">{sale.customer?.name ?? 'Walk-in'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold">{formatCurrency(Number(sale.totalAmount ?? 0))}</p>
-                        <Badge variant="outline" className="text-xs">{sale.status}</Badge>
-                      </div>
+                {recentSales.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="flex items-center justify-between border-b py-2 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{sale.saleNumber}</p>
+                      <p className="text-xs text-gray-500">
+                        {sale.customer?.name ?? 'Walk-in'}
+                      </p>
                     </div>
-                  )
-                )}
+
+                    <div className="text-right">
+                      <p className="text-sm font-bold">
+                        {formatCurrency(Number(sale.totalAmount ?? 0))}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {sale.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
@@ -275,7 +375,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
               Low Stock Alerts
             </CardTitle>
@@ -284,29 +384,29 @@ export default function DashboardPage() {
             {loadingLowStock ? (
               <Skeleton className="h-48 w-full" />
             ) : lowStockRows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-gray-400">
-                <Package className="h-8 w-8 mb-2" />
+              <div className="flex h-32 flex-col items-center justify-center text-gray-400">
+                <Package className="mb-2 h-8 w-8" />
                 <p className="text-sm">All stock levels normal</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {lowStockRows.map(
-                  (item: {
-                    id: string
-                    quantity?: number | string
-                    product: { name: string; sku?: string }
-                  }) => (
-                    <div key={item.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
-                        <p className="text-sm font-medium">{item.product.name}</p>
-                        <p className="text-xs text-gray-500">{item.product.sku ?? 'No SKU'}</p>
-                      </div>
-                      <Badge variant="destructive" className="text-xs">
-                        {Number(item.quantity ?? 0)} left
-                      </Badge>
+                {lowStockRows.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between border-b py-2 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{item.product.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {item.product.sku ?? 'No SKU'}
+                      </p>
                     </div>
-                  )
-                )}
+
+                    <Badge variant="destructive" className="text-xs">
+                      {Number(item.quantity ?? 0)} left
+                    </Badge>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
