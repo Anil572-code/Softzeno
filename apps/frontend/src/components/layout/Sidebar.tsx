@@ -8,8 +8,7 @@ import { APP_LOGO_URL } from '@/lib/constants'
 import {
   LayoutDashboard, ShoppingCart, Package, Users, BarChart3,
   Settings, ChefHat, Table2, ClipboardList, Boxes, Truck,
-  Receipt, DollarSign, UserCog, Shield, X, Tag,
-  TrendingUp, Building2
+  DollarSign, UserCog, Shield, X, TrendingUp, Building2
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui/button'
@@ -28,14 +27,14 @@ const navGroups = [
     group: 'Sales',
     items: [
       { label: 'Orders', href: '/orders', icon: ClipboardList },
-      { label: 'Sales History', href: '/sales', icon: Receipt },
+      { label: 'Sales History', href: '/orders', icon: DollarSign },
     ],
   },
   {
     group: 'Catalog',
     items: [
       { label: 'Products', href: '/products', icon: Package },
-      { label: 'Categories', href: '/categories', icon: Tag },
+      { label: 'Categories', href: '/products', icon: Package },
       { label: 'Inventory', href: '/inventory', icon: Boxes },
     ],
   },
@@ -83,7 +82,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/50 lg:hidden"
@@ -91,14 +89,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white flex flex-col transform transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Logo */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 overflow-hidden rounded-lg bg-black/20">
@@ -123,7 +119,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           {navGroups.map((group) => (
             <div key={group.group}>
@@ -133,9 +128,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <ul className="space-y-1">
                 {group.items.map((item) => {
                   const Icon = item.icon
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                  const isActive =
+                    pathname === item.href || pathname.startsWith(item.href + '/')
+
                   return (
-                    <li key={item.href}>
+                    <li key={`${group.group}-${item.label}-${item.href}`}>
                       <Link
                         href={item.href}
                         className={cn(
@@ -162,7 +159,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        {/* User profile at bottom */}
         <div className="p-4 border-t border-slate-700">
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
@@ -171,8 +167,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name ?? 'User'}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.role ?? 'Staff'}</p>
+              <p className="text-sm font-medium text-white truncate">
+                {user?.name ?? 'User'}
+              </p>
+              <p className="text-xs text-slate-400 truncate">
+                {user?.role ?? 'Staff'}
+              </p>
             </div>
             <Button
               variant="ghost"
