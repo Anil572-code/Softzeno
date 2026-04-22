@@ -49,10 +49,15 @@ export default function DashboardPage() {
     enabled: !!branchId,
   })
 
+  const todayRevenue = Number(dashboard?.today?.revenue ?? 0)
+  const todaySales = Number(dashboard?.today?.sales ?? 0)
+  const monthlyRevenue = Number(dashboard?.thisMonth?.revenue ?? 0)
+  const lowStockAlerts = Number(dashboard?.lowStockAlerts ?? 0)
+
   const statCards = [
     {
       title: "Today's Revenue",
-      value: formatCurrency(Number(dashboard?.today.revenue ?? 0)),
+      value: formatCurrency(todayRevenue),
       icon: DollarSign,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50 dark:bg-indigo-900/20',
@@ -60,7 +65,7 @@ export default function DashboardPage() {
     },
     {
       title: "Today's Orders",
-      value: dashboard?.today.sales ?? 0,
+      value: todaySales,
       icon: ShoppingCart,
       color: 'text-green-600',
       bg: 'bg-green-50 dark:bg-green-900/20',
@@ -68,7 +73,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Monthly Revenue',
-      value: formatCurrency(Number(dashboard?.thisMonth.revenue ?? 0)),
+      value: formatCurrency(monthlyRevenue),
       icon: TrendingUp,
       color: 'text-purple-600',
       bg: 'bg-purple-50 dark:bg-purple-900/20',
@@ -76,7 +81,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Low Stock Alerts',
-      value: dashboard?.lowStockAlerts ?? 0,
+      value: lowStockAlerts,
       icon: AlertTriangle,
       color: 'text-yellow-600',
       bg: 'bg-yellow-50 dark:bg-yellow-900/20',
@@ -86,12 +91,12 @@ export default function DashboardPage() {
 
   const revenueData = (salesReport ?? []).map((row) => ({
     date: row.period,
-    revenue: Number(row.revenue),
+    revenue: Number(row.revenue ?? 0),
   }))
 
   const topProducts = (productReport ?? [])
     .slice()
-    .sort((a, b) => Number(b.revenue) - Number(a.revenue))
+    .sort((a, b) => Number(b.revenue ?? 0) - Number(a.revenue ?? 0))
     .slice(0, 5)
 
   const recentSales = dashboard?.recentSales ?? []
@@ -186,11 +191,11 @@ export default function DashboardPage() {
                       <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
                         <div
                           className="bg-indigo-500 h-1.5 rounded-full"
-                          style={{ width: `${Math.min(100, (Number(p.revenue) / Number(topProducts[0]?.revenue || 1)) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (Number(p.revenue ?? 0) / Number(topProducts[0]?.revenue || 1)) * 100)}%` }}
                         />
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">{Number(p.quantity)} sold</span>
+                    <span className="text-xs text-gray-500">{Number(p.quantity ?? 0)} sold</span>
                   </div>
                 ))}
               </div>
@@ -221,7 +226,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-500">{sale.customer?.name ?? 'Walk-in'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">{formatCurrency(Number(sale.totalAmount))}</p>
+                      <p className="text-sm font-bold">{formatCurrency(Number(sale.totalAmount ?? 0))}</p>
                       <Badge variant="outline" className="text-xs">{sale.status}</Badge>
                     </div>
                   </div>
@@ -255,7 +260,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-500">{item.product.sku ?? 'No SKU'}</p>
                     </div>
                     <Badge variant="destructive" className="text-xs">
-                      {Number(item.quantity)} left
+                      {Number(item.quantity ?? 0)} left
                     </Badge>
                   </div>
                 ))}
